@@ -1,0 +1,227 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Student Library Portal</title>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@4.6.2/dist/css/bootstrap.min.css">
+    <link rel="stylesheet" href="style.css">
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+</head>
+<body>
+
+    <!-- 1. Top Navbar with Profile Dropdown -->
+    <nav class="navbar navbar-dark bg-primary p-3 shadow-sm">
+        <div class="container d-flex justify-content-between">
+            <span class="navbar-brand mb-0 h1"><span id="userNameNav">Welcome, Guest</span> | Student Library Portal</span>
+            
+            <div class="dropdown">
+                <button class="btn dropdown-toggle d-flex align-items-center" type="button"
+                    id="profileDropdown" data-toggle="dropdown" style="border:none; outline:none; box-shadow:none; background:transparent;">
+                    <img src="https://cdn-icons-png.flaticon.com/512/1077/1077114.png" width="35"
+                        style="border-radius:50%; background:white; padding:2px;">
+                </button>
+                <div class="dropdown-menu dropdown-menu-right mt-2 shadow-lg rounded">
+                    <a class="dropdown-item p-3 border-bottom" href="profile.html">Your Details</a>
+                    <a class="dropdown-item p-3 border-bottom" href="history.html">Checkout History</a>
+                    <a class="dropdown-item p-3 text-danger font-weight-bold" href="#" onclick="logout()">Log out</a>
+                </div>
+            </div>
+        </div>
+    </nav>
+
+    <!-- 2. Search Bar (Library Catalog Style) -->
+    <div class="container-fluid bg-white border-bottom py-3 shadow-sm">
+        <div class="container">
+            <div class="row align-items-center">
+                <div class="col-md-3">
+                    <select id="searchFilter" class="form-control" style="border-radius:20px;">
+                        <option value="all">Library Catalog</option>
+                        <option value="title">By Title</option>
+                        <option value="author">By Author</option>
+                    </select>
+                </div>
+                <div class="col-md-9">
+                    <div class="input-group">
+                        <input type="text" id="searchBox" class="form-control" placeholder="Search the catalog by keyword..." style="border-radius: 20px 0 0 20px; border-right:none;">
+                        <div class="input-group-append">
+                            <button class="btn btn-success px-4" onclick="searchBooks()" style="border-radius: 0 20px 20px 0;">
+                                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" viewBox="0 0 16 16">
+                                    <path d="M11.742 10.344a6.5 6.5 0 1 0-1.397 1.398h-.001q.044.06.098.115l3.85 3.85a1 1 0 0 0 1.415-1.414l-3.85-3.85a1 1 0 0 0-.115-.1zM12 6.5a5.5 5.5 0 1 1-11 0 5.5 5.5 0 0 1 11 0"/>
+                                </svg>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 3. Book Catalog Table -->
+    <div class="container mt-4">
+        <div class="bg-white rounded shadow-sm p-4">
+            <div class="d-flex justify-content-between align-items-center mb-3">
+                <h5 class="font-weight-bold text-dark mb-0">New Arrivals</h5>
+                <span class="badge badge-primary p-2" id="bookCount">0 Books</span>
+            </div>
+
+            <div class="table-responsive">
+                <table class="table table-bordered table-hover">
+                    <thead style="background-color: #2c5f7c; color: white;">
+                        <tr>
+                            <th width="5%">#</th>
+                            <th width="40%">Title</th>
+                            <th width="35%">Author</th>
+                            <th width="20%" class="text-center">Action</th>
+                        </tr>
+                    </thead>
+                    <tbody id="bookList">
+                        <!-- Books load here via AJAX -->
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <!-- 4. Hidden Modals for Profile & History -->
+    <div id="modalOverlay" style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.5); z-index:1000;" onclick="closeModals()"></div>
+
+    <div id="detailsModal" class="p-4 shadow-lg rounded bg-white" style="display:none; position:fixed; top:50%; left:50%; transform:translate(-50%,-50%); width:420px; z-index:1001; border-top:5px solid #007bff;">
+        <h4 class="font-weight-bold text-primary mb-3">Your Details</h4>
+        <hr>
+        <p><strong>Full Name:</strong> <span id="detName"></span></p>
+        <p><strong>Username:</strong> <span id="detUname"></span></p>
+        <p><strong>Student ID:</strong> <span id="detSid"></span></p>
+        <p><strong>Department:</strong> <span id="detDept"></span></p>
+        <button class="btn btn-secondary btn-block mt-3" onclick="closeModals()">Close</button>
+    </div>
+
+    <div id="historyModal" class="p-4 shadow-lg rounded bg-white" style="display:none; position:fixed; top:50%; left:50%; transform:translate(-50%,-50%); width:500px; z-index:1001; border-top:5px solid #28a745;">
+        <h4 class="font-weight-bold text-success mb-3">Your Book History</h4>
+        <hr>
+        <div id="historyContent" style="max-height:300px; overflow-y:auto;"></div>
+        <button class="btn btn-secondary btn-block mt-3" onclick="closeModals()">Close</button>
+    </div>
+
+    <!-- Required Bootstrap JS -->
+    <script src="https://cdn.jsdelivr.net/npm/popper.js@1.16.1/dist/umd/popper.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@4.6.2/dist/js/bootstrap.min.js"></script>
+
+    <script>
+        var allBooks = []; // Store all books for search
+
+        $(document).ready(function () {
+            const user = localStorage.getItem("currentUser") || "Guest";
+
+            // Fetch Full Name directly from MongoDB database
+            $.get('/api/profile/' + user, function(data) {
+                $("#userNameNav").text("Welcome, " + data.fullname);
+            }).fail(function() {
+                $("#userNameNav").text("Welcome, " + user);
+            });
+
+            loadBooks();
+
+            // Live search as you type
+            $("#searchBox").on("keyup", function() { searchBooks(); });
+        });
+
+        // Load all books from MongoDB
+        function loadBooks() {
+            $.get('/api/books', function (books) {
+                allBooks = books;
+                renderBooks(books);
+            });
+        }
+
+        // Render books into the table
+        function renderBooks(books) {
+            if (books.length == 0) {
+                $("#bookList").html("<tr><td colspan='4' class='p-4 text-center text-muted'>No books found.</td></tr>");
+                $("#bookCount").text("0 Books");
+                return;
+            }
+            let html = "";
+            books.forEach((b, i) => {
+                html += `<tr>
+                    <td>${i + 1}</td>
+                    <td><b>${b.bName}</b></td>
+                    <td>${b.aName}</td>
+                    <td class='text-center'>
+                        <button class='btn btn-success btn-sm px-3' onclick="borrow('${b.bName}')">Borrow</button>
+                    </td>
+                </tr>`;
+            });
+            $("#bookList").html(html);
+            $("#bookCount").text(books.length + " Books");
+        }
+
+        // Search/Filter books
+        function searchBooks() {
+            const query = $("#searchBox").val().toLowerCase();
+            const filter = $("#searchFilter").val();
+
+            if (query == "") { renderBooks(allBooks); return; }
+
+            const results = allBooks.filter(b => {
+                if (filter == "title") return b.bName.toLowerCase().includes(query);
+                if (filter == "author") return b.aName.toLowerCase().includes(query);
+                return b.bName.toLowerCase().includes(query) || b.aName.toLowerCase().includes(query);
+            });
+            renderBooks(results);
+        }
+
+        // Profile Details Modal
+        function showMyDetails() {
+            const user = localStorage.getItem("currentUser");
+            $.get('/api/profile/' + user, function(data) {
+                $("#detName").text(data.fullname);
+                $("#detUname").text(data.username);
+                $("#detSid").text(data.studentId);
+                $("#detDept").text(data.department);
+                $("#modalOverlay, #detailsModal").fadeIn();
+            });
+        }
+
+        // Checkout History Modal
+        function showHistory() {
+            const user = localStorage.getItem("currentUser");
+            $.get('/api/history', function(data) {
+                let html = "<ul class='list-group list-group-flush'>";
+                let count = 0;
+                data.forEach(log => {
+                    if (log.user == user) {
+                        html += `<li class='list-group-item'><b>${log.book}</b> — borrowed</li>`;
+                        count++;
+                    }
+                });
+                html += "</ul>";
+                if (count == 0) html = "<p class='text-center text-muted p-3'>No books borrowed yet.</p>";
+                $("#historyContent").html(html);
+                $("#modalOverlay, #historyModal").fadeIn();
+            });
+        }
+
+        function closeModals() {
+            $("#modalOverlay, #detailsModal, #historyModal").fadeOut();
+        }
+
+        // Borrow a book
+        function borrow(bookName) {
+            const user = localStorage.getItem("currentUser");
+            $.ajax({
+                url: '/api/checkout',
+                method: 'POST',
+                contentType: 'application/json',
+                data: JSON.stringify({ user: user, book: bookName }),
+                success: function () {
+                    alert("Success! '" + bookName + "' has been issued to you.");
+                }
+            });
+        }
+
+        function logout() {
+            localStorage.removeItem("currentUser");
+            window.location.href = "index.html";
+        }
+    </script>
+</body>
+</html>

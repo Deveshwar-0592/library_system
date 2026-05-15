@@ -1,0 +1,508 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Admin Portal - Library Management</title>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@4.6.2/dist/css/bootstrap.min.css">
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+    <style>
+        body { background-color: #f0f2f5; font-family: 'Segoe UI', sans-serif; margin: 0; }
+
+        /* Navbar */
+        .top-navbar {
+            background-color: #1a237e;
+            color: white;
+            padding: 13px 30px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.25);
+        }
+        .top-navbar span { font-size: 18px; font-weight: 700; letter-spacing: 0.5px; }
+        .top-navbar a { color: #ffcdd2; text-decoration: none; font-size: 13px; }
+        .top-navbar a:hover { color: white; }
+        .admin-badge { background: #e53935; color: white; font-size: 11px; padding: 3px 10px; border-radius: 20px; margin-left: 10px; }
+
+        /* Breadcrumb */
+        .breadcrumb-bar {
+            background: #e8eaf0; padding: 8px 30px;
+            font-size: 13px; color: #555; border-bottom: 1px solid #ddd;
+        }
+
+        /* Layout */
+        .admin-wrapper { display: flex; max-width: 1150px; margin: 25px auto; gap: 20px; padding: 0 15px; }
+
+        /* Sidebar */
+        .sidebar { width: 210px; min-width: 210px; height: fit-content; }
+        .sidebar-card { background: white; border-radius: 8px; box-shadow: 0 1px 6px rgba(0,0,0,0.1); overflow: hidden; }
+        .sidebar-title { background: #1a237e; color: white; padding: 12px 18px; font-size: 13px; font-weight: 700; text-transform: uppercase; letter-spacing: 1px; }
+        .sidebar a {
+            display: block; padding: 12px 18px; color: #333;
+            text-decoration: none; font-size: 14px;
+            border-bottom: 1px solid #f0f0f0; transition: background 0.2s;
+        }
+        .sidebar a:hover { background: #e8eaf6; color: #1a237e; }
+        .sidebar a.active { background: #1a237e; color: white; font-weight: 600; }
+        .sidebar .logout-link { color: #c62828 !important; font-weight: 600; }
+        .sidebar .logout-link:hover { background: #ffebee !important; }
+
+        /* Content */
+        .content-area { flex: 1; background: white; border-radius: 8px; box-shadow: 0 1px 6px rgba(0,0,0,0.1); padding: 30px; min-height: 450px; }
+        .content-area h3 { font-size: 22px; font-weight: 700; color: #1a237e; margin-bottom: 5px; }
+        .content-area .subtitle { color: #777; font-size: 14px; margin-bottom: 20px; }
+
+        /* Sections */
+        .section { display: none; }
+        .section.active { display: block; }
+
+        /* Tables */
+        .admin-table thead tr { background-color: #1a237e; color: white; font-size: 13px; }
+        .admin-table td { font-size: 13px; vertical-align: middle; }
+
+        /* Badges */
+        .badge-with-you { background: #fff3e0; color: #e65100; padding: 3px 10px; border-radius: 20px; font-size: 12px; font-weight: 600; }
+        .badge-returned  { background: #e8f5e9; color: #2e7d32; padding: 3px 10px; border-radius: 20px; font-size: 12px; font-weight: 600; }
+
+        /* Buttons */
+        .btn-add   { background: #1a237e; color: white; border: none; border-radius: 8px; padding: 9px 24px; font-size: 14px; }
+        .btn-add:hover { background: #0d47a1; }
+        .btn-del   { background: #e53935; color: white; border: none; border-radius: 6px; padding: 4px 12px; font-size: 12px; }
+        .btn-del:hover { background: #b71c1c; }
+        .btn-ret   { background: #2e7d32; color: white; border: none; border-radius: 6px; padding: 4px 12px; font-size: 12px; }
+        .btn-ret:hover { background: #1b5e20; }
+        .btn-search { background: #1a237e; color: white; border: none; border-radius: 0 8px 8px 0; padding: 9px 20px; font-size: 14px; }
+
+        /* Form fields */
+        .form-control { border-radius: 8px; font-size: 14px; }
+        .form-control:focus { border-color: #1a237e; box-shadow: 0 0 0 2px rgba(26,35,126,0.15); }
+
+        /* Student profile card */
+        .student-card { background: #f8f9ff; border: 1px solid #c5cae9; border-radius: 10px; padding: 20px; margin-bottom: 20px; }
+        .student-card .s-name { font-size: 18px; font-weight: 700; color: #1a237e; }
+        .student-card .s-sub { font-size: 13px; color: #666; }
+
+        /* Fine box */
+        .fine-box { background: #fff8e1; border-left: 4px solid #f9a825; border-radius: 6px; padding: 12px 18px; font-size: 14px; margin-bottom: 15px; }
+        .fine-box .amount { font-size: 20px; font-weight: 700; color: #e65100; }
+
+        /* Sub-tabs inside user section */
+        .sub-tabs { display: flex; border-bottom: 2px solid #e0e0e0; margin-bottom: 20px; }
+        .sub-tab { padding: 8px 20px; font-size: 13px; font-weight: 600; color: #666; cursor: pointer; border-bottom: 3px solid transparent; margin-bottom: -2px; }
+        .sub-tab.active { color: #1a237e; border-bottom-color: #1a237e; }
+        .sub-content { display: none; }
+        .sub-content.active { display: block; }
+    </style>
+</head>
+<body>
+
+<!-- Navbar -->
+<div class="top-navbar">
+    <span>Library Admin Portal <span class="admin-badge">ADMIN</span></span>
+    <a href="#" onclick="adminLogout()">Logout &rarr;</a>
+</div>
+
+<!-- Breadcrumb -->
+<div class="breadcrumb-bar">
+    Admin Portal &rsaquo; <span id="bcSection">Manage Books</span>
+</div>
+
+<!-- Layout -->
+<div class="admin-wrapper">
+
+    <!-- Sidebar -->
+    <div class="sidebar">
+        <div class="sidebar-card">
+            <div class="sidebar-title">Admin Menu</div>
+            <a href="#" class="active" id="nav-books"   onclick="showSection('books', this)">Manage Books</a>
+            <a href="#" id="nav-users"   onclick="showSection('users', this)">User Details</a>
+            <a href="#" id="nav-history" onclick="showSection('history', this)">Checkout History</a>
+            <a href="#" class="logout-link" onclick="adminLogout()">Logout</a>
+        </div>
+    </div>
+
+    <!-- Content -->
+    <div class="content-area">
+
+        <!-- ===== SECTION 1: MANAGE BOOKS ===== -->
+        <div class="section active" id="section-books">
+            <h3>Manage Books</h3>
+            <p class="subtitle">Add new books to the library catalog or remove existing ones.</p>
+            <hr>
+
+            <!-- Add Book -->
+            <p style="font-size:12px;color:#888;font-weight:700;text-transform:uppercase;letter-spacing:1px;">Add New Book</p>
+            <div class="row mb-4">
+                <div class="col-md-4">
+                    <div class="form-group">
+                        <label style="font-size:13px;font-weight:600;">Book Title</label>
+                        <input type="text" id="newBookTitle" class="form-control" placeholder="Enter book title">
+                    </div>
+                </div>
+                <div class="col-md-4">
+                    <div class="form-group">
+                        <label style="font-size:13px;font-weight:600;">Author Name</label>
+                        <input type="text" id="newBookAuthor" class="form-control" placeholder="Enter author name">
+                    </div>
+                </div>
+                <div class="col-md-4 d-flex align-items-end">
+                    <div class="form-group w-100">
+                        <button class="btn-add w-100" onclick="addBook()">+ Add to Library</button>
+                    </div>
+                </div>
+            </div>
+            <div id="addBookMsg" class="mb-3" style="font-size:13px;"></div>
+
+            <hr>
+            <!-- Book List -->
+            <div class="d-flex justify-content-between align-items-center mb-2">
+                <p style="font-size:12px;color:#888;font-weight:700;text-transform:uppercase;letter-spacing:1px;margin:0;">Current Book Catalog</p>
+                <span class="badge badge-primary" id="bookCountBadge">0 Books</span>
+            </div>
+            <div class="table-responsive">
+                <table class="table table-bordered admin-table">
+                    <thead><tr><th>#</th><th>Book Title</th><th>Author</th><th class="text-center">Action</th></tr></thead>
+                    <tbody id="bookListAdmin"><tr><td colspan="4" class="text-center text-muted p-4">Loading...</td></tr></tbody>
+                </table>
+            </div>
+        </div>
+
+        <!-- ===== SECTION 2: USER DETAILS ===== -->
+        <div class="section" id="section-users">
+            <h3>User Details</h3>
+            <p class="subtitle">Search for a student to view their profile, loans, checkout history, and payment dues.</p>
+            <hr>
+
+            <!-- Search -->
+            <div class="row mb-3">
+                <div class="col-md-5">
+                    <div class="input-group">
+                        <input type="text" id="searchUsernameInput" class="form-control" style="border-radius:8px 0 0 8px;" placeholder="Search by Username">
+                        <div class="input-group-append">
+                            <button class="btn-search" onclick="searchByUsername()">Search</button>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-1 text-center pt-2" style="color:#999;font-weight:600;">OR</div>
+                <div class="col-md-5">
+                    <div class="input-group">
+                        <input type="text" id="searchStudentIdInput" class="form-control" style="border-radius:8px 0 0 8px;" placeholder="Search by Student ID">
+                        <div class="input-group-append">
+                            <button class="btn-search" onclick="searchByStudentId()">Search</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div id="searchUserMsg" class="mb-3" style="font-size:13px;"></div>
+
+            <!-- Student Detail Card (shown after search) -->
+            <div id="studentDetail" style="display:none;">
+                <div class="student-card">
+                    <div class="s-name" id="su-name"></div>
+                    <div class="s-sub">Username: <b id="su-user"></b> &nbsp;|&nbsp; Student ID: <b id="su-sid"></b> &nbsp;|&nbsp; Dept: <b id="su-dept"></b></div>
+                    <div class="s-sub mt-1">Phone: <b id="su-phone"></b> &nbsp;|&nbsp; Email: <b id="su-email"></b></div>
+                </div>
+
+                <!-- Sub-tabs -->
+                <div class="sub-tabs">
+                    <div class="sub-tab active" onclick="showSubTab('loans', this)">Current Loans</div>
+                    <div class="sub-tab" onclick="showSubTab('uhistory', this)">Checkout History</div>
+                    <div class="sub-tab" onclick="showSubTab('upayment', this)">Payment</div>
+                </div>
+
+                <!-- Current Loans -->
+                <div class="sub-content active" id="sub-loans">
+                    <div class="table-responsive">
+                        <table class="table table-bordered admin-table">
+                            <thead><tr><th>#</th><th>Book Title</th><th>Borrow Date</th><th class="text-center">Return</th></tr></thead>
+                            <tbody id="userLoansTable"><tr><td colspan="4" class="text-center text-muted p-3">Loading...</td></tr></tbody>
+                        </table>
+                    </div>
+                </div>
+
+                <!-- Checkout History -->
+                <div class="sub-content" id="sub-uhistory">
+                    <div class="table-responsive">
+                        <table class="table table-bordered admin-table">
+                            <thead><tr><th>#</th><th>Book Title</th><th>Borrow Date</th><th>Status</th></tr></thead>
+                            <tbody id="userHistoryTable"><tr><td colspan="4" class="text-center text-muted p-3">Loading...</td></tr></tbody>
+                        </table>
+                    </div>
+                </div>
+
+                <!-- Payment -->
+                <div class="sub-content" id="sub-upayment">
+                    <div class="fine-box" id="userFineBox" style="display:none;">
+                        Total Fine: <span class="amount" id="userTotalFine">₹0</span>
+                    </div>
+                    <div class="table-responsive">
+                        <table class="table table-bordered admin-table">
+                            <thead><tr><th>#</th><th>Book</th><th>Borrow Date</th><th>Return Date</th><th>Days</th><th>Fine (₹)</th></tr></thead>
+                            <tbody id="userPaymentTable"><tr><td colspan="6" class="text-center text-muted p-3">Loading...</td></tr></tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- ===== SECTION 3: CHECKOUT HISTORY BY DATE ===== -->
+        <div class="section" id="section-history">
+            <h3>Checkout History</h3>
+            <p class="subtitle">View all students who borrowed books on a particular date.</p>
+            <hr>
+
+            <div class="row mb-4">
+                <div class="col-md-5">
+                    <div class="input-group">
+                        <input type="date" id="filterDate" class="form-control" style="border-radius:8px 0 0 8px;">
+                        <div class="input-group-append">
+                            <button class="btn-search" onclick="loadHistoryByDate()">View Records</button>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-3 pt-1">
+                    <span class="badge badge-primary p-2" id="dateResultCount">Select a date above</span>
+                </div>
+            </div>
+
+            <div class="table-responsive">
+                <table class="table table-bordered admin-table">
+                    <thead>
+                        <tr>
+                            <th>#</th>
+                            <th>Username</th>
+                            <th>Book Title</th>
+                            <th>Borrow Date</th>
+                            <th>Status</th>
+                        </tr>
+                    </thead>
+                    <tbody id="dateHistoryTable">
+                        <tr><td colspan="5" class="text-center text-muted p-5">Choose a date to filter checkouts.</td></tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+    </div><!-- /content-area -->
+</div><!-- /admin-wrapper -->
+
+<script src="https://cdn.jsdelivr.net/npm/popper.js@1.16.1/dist/umd/popper.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@4.6.2/dist/js/bootstrap.min.js"></script>
+<script>
+    var currentSearchedUser = null;  // store username of searched student
+
+    $(document).ready(function () {
+        loadBookList();
+        // Default date to today
+        const today = new Date().toISOString().split('T')[0];
+        $("#filterDate").val(today);
+    });
+
+    // ================== SIDEBAR NAVIGATION ==================
+    function showSection(name, el) {
+        $(".section").removeClass("active");
+        $(".sidebar a").removeClass("active");
+        $("#section-" + name).addClass("active");
+        $(el).addClass("active");
+        $("#bcSection").text($(el).text());
+        if (name === 'books') loadBookList();
+    }
+
+    // ================== MANAGE BOOKS ==================
+    function loadBookList() {
+        $.get('/api/books', function(books) {
+            $("#bookCountBadge").text(books.length + " Books");
+            if (books.length === 0) {
+                $("#bookListAdmin").html("<tr><td colspan='4' class='text-center text-muted p-4'>No books in catalog yet.</td></tr>");
+                return;
+            }
+            let html = "";
+            books.forEach((b, i) => {
+                html += `<tr>
+                    <td>${i+1}</td>
+                    <td><b>${b.bName}</b></td>
+                    <td>${b.aName}</td>
+                    <td class='text-center'><button class='btn-del' onclick="deleteBook('${b._id}')">Delete</button></td>
+                </tr>`;
+            });
+            $("#bookListAdmin").html(html);
+        }).fail(function() {
+            $("#bookListAdmin").html("<tr><td colspan='4' class='text-center text-danger p-4'>Could not load books. Restart server.</td></tr>");
+        });
+    }
+
+    function addBook() {
+        const title  = $("#newBookTitle").val().trim();
+        const author = $("#newBookAuthor").val().trim();
+        if (!title || !author) {
+            $("#addBookMsg").html("<span class='text-danger'>Please enter both Book Title and Author.</span>");
+            return;
+        }
+        $.ajax({
+            url: '/api/addbook', method: 'POST', contentType: 'application/json',
+            data: JSON.stringify({ bName: title, aName: author }),
+            success: function(res) {
+                $("#addBookMsg").html("<span class='text-success'>✓ " + res.message + "</span>");
+                $("#newBookTitle, #newBookAuthor").val("");
+                setTimeout(() => $("#addBookMsg").html(""), 3000);
+                loadBookList();
+            }
+        });
+    }
+
+    function deleteBook(id) {
+        if (!confirm("Are you sure you want to delete this book?")) return;
+        $.ajax({
+            url: '/api/deletebook/' + id, method: 'DELETE',
+            success: function() { loadBookList(); }
+        });
+    }
+
+    // ================== USER DETAILS ==================
+    function searchByUsername() {
+        const u = $("#searchUsernameInput").val().trim();
+        if (!u) return;
+        $.get('/api/profile/' + u, function(data) {
+            showStudentCard(data);
+        }).fail(function() {
+            $("#searchUserMsg").html("<span class='text-danger'>No student found with that username.</span>");
+            $("#studentDetail").hide();
+        });
+    }
+
+    function searchByStudentId() {
+        const sid = $("#searchStudentIdInput").val().trim();
+        if (!sid) return;
+        $.get('/api/searchuser/' + sid, function(data) {
+            showStudentCard(data);
+        }).fail(function() {
+            $("#searchUserMsg").html("<span class='text-danger'>No student found with that Student ID.</span>");
+            $("#studentDetail").hide();
+        });
+    }
+
+    function showStudentCard(data) {
+        currentSearchedUser = data.username;
+        $("#searchUserMsg").html("");
+        $("#su-name").text(data.fullname);
+        $("#su-user").text(data.username);
+        $("#su-sid").text(data.studentId);
+        $("#su-dept").text(data.department);
+        $("#su-phone").text(data.phone || "—");
+        $("#su-email").text(data.email || "—");
+        $("#studentDetail").fadeIn();
+
+        // Show default sub-tab (loans)
+        showSubTab('loans', $(".sub-tab").first()[0]);
+        loadUserLoans(data.username);
+    }
+
+    function showSubTab(name, el) {
+        $(".sub-content").removeClass("active");
+        $(".sub-tab").removeClass("active");
+        $("#sub-" + name).addClass("active");
+        $(el).addClass("active");
+
+        if (name === 'loans')    loadUserLoans(currentSearchedUser);
+        if (name === 'uhistory') loadUserHistory(currentSearchedUser);
+        if (name === 'upayment') loadUserPayment(currentSearchedUser);
+    }
+
+    function loadUserLoans(username) {
+        $.get('/api/mybooks/' + username, function(data) {
+            if (data.length === 0) {
+                $("#userLoansTable").html("<tr><td colspan='4' class='text-center text-muted p-3'>No books currently with this student.</td></tr>");
+                return;
+            }
+            let html = "";
+            data.forEach((r, i) => {
+                const date = r.borrowDate ? new Date(r.borrowDate).toLocaleDateString('en-IN') : "—";
+                html += `<tr>
+                    <td>${i+1}</td>
+                    <td><b>${r.book}</b></td>
+                    <td>${date}</td>
+                    <td class='text-center'><button class='btn-ret' onclick="adminReturnBook('${r._id}')">Mark Returned</button></td>
+                </tr>`;
+            });
+            $("#userLoansTable").html(html);
+        }).fail(() => $("#userLoansTable").html("<tr><td colspan='4' class='text-center text-danger p-3'>Failed to load. Restart server.</td></tr>"));
+    }
+
+    function loadUserHistory(username) {
+        $.get('/api/history', function(all) {
+            const mine = all.filter(r => r.user === username);
+            if (mine.length === 0) {
+                $("#userHistoryTable").html("<tr><td colspan='4' class='text-center text-muted p-3'>No checkout history for this student.</td></tr>");
+                return;
+            }
+            let html = "";
+            mine.forEach((r, i) => {
+                const date = r.borrowDate ? new Date(r.borrowDate).toLocaleDateString('en-IN') : "—";
+                const status = r.returned ? "<span class='badge-returned'>Returned</span>" : "<span class='badge-with-you'>With Student</span>";
+                html += `<tr><td>${i+1}</td><td><b>${r.book}</b></td><td>${date}</td><td>${status}</td></tr>`;
+            });
+            $("#userHistoryTable").html(html);
+        });
+    }
+
+    function loadUserPayment(username) {
+        $.get('/api/payments/' + username, function(data) {
+            if (data.length === 0) {
+                $("#userPaymentTable").html("<tr><td colspan='6' class='text-center text-muted p-3'>No returned books for this student yet.</td></tr>");
+                $("#userFineBox").hide();
+                return;
+            }
+            let html = ""; let total = 0;
+            data.forEach((r, i) => {
+                const bd = new Date(r.borrowDate).toLocaleDateString('en-IN');
+                const rd = new Date(r.returnDate).toLocaleDateString('en-IN');
+                const fc = r.fine > 0 ? `<span style="color:#c62828;font-weight:600;">₹${r.fine}</span>` : `<span style="color:#2e7d32;">₹0</span>`;
+                total += r.fine;
+                html += `<tr><td>${i+1}</td><td><b>${r.book}</b></td><td>${bd}</td><td>${rd}</td><td>${r.daysKept} days</td><td>${fc}</td></tr>`;
+            });
+            $("#userPaymentTable").html(html);
+            if (total > 0) { $("#userTotalFine").text("₹" + total); $("#userFineBox").show(); }
+            else $("#userFineBox").hide();
+        });
+    }
+
+    function adminReturnBook(id) {
+        if (!confirm("Mark this book as returned?")) return;
+        $.ajax({
+            url: '/api/return', method: 'POST', contentType: 'application/json',
+            data: JSON.stringify({ id: id }),
+            success: function() {
+                alert("Book marked as returned!");
+                loadUserLoans(currentSearchedUser);
+            }
+        });
+    }
+
+    // ================== CHECKOUT HISTORY BY DATE ==================
+    function loadHistoryByDate() {
+        const date = $("#filterDate").val();
+        if (!date) { alert("Please select a date."); return; }
+        $.get('/api/historybydate/' + date, function(data) {
+            $("#dateResultCount").text(data.length + " record(s) found");
+            if (data.length === 0) {
+                $("#dateHistoryTable").html("<tr><td colspan='5' class='text-center text-muted p-4'>No checkouts recorded on this date.</td></tr>");
+                return;
+            }
+            let html = "";
+            data.forEach((r, i) => {
+                const date = r.borrowDate ? new Date(r.borrowDate).toLocaleDateString('en-IN') : "—";
+                const status = r.returned ? "<span class='badge-returned'>Returned</span>" : "<span class='badge-with-you'>With Student</span>";
+                html += `<tr><td>${i+1}</td><td>${r.user}</td><td><b>${r.book}</b></td><td>${date}</td><td>${status}</td></tr>`;
+            });
+            $("#dateHistoryTable").html(html);
+        }).fail(() => {
+            $("#dateHistoryTable").html("<tr><td colspan='5' class='text-center text-danger p-4'>Could not load. Restart server.</td></tr>");
+        });
+    }
+
+    // ================== LOGOUT ==================
+    function adminLogout() {
+        localStorage.clear();
+        window.location.href = "index.html";
+    }
+</script>
+</body>
+</html>

@@ -1,0 +1,195 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <title>Library Login Portal</title>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@4.6.2/dist/css/bootstrap.min.css">
+    <link rel="stylesheet" href="style.css">
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+</head>
+
+<body class="login-bg">
+
+    <div class="container mt-5">
+        <div class="row justify-content-center">
+            <div class="col-md-5 col-sm-8">
+
+                <div class="card login-box">
+                    <div class="card-header bg-primary text-white text-center">
+                        <h2 id="loginTitle" style="margin-bottom:0px; font-size:24px; font-weight:bold;">Library Login
+                            System</h2>
+                    </div>
+                    <div class="card-body">
+
+                        <!-- Simple User/Admin Toggle Buttons -->
+                        <div class="btn-group w-100 mb-4">
+                            <button id="btnUser" class="btn btn-primary" onclick="switchLogin('user')">User
+                                Login</button>
+                            <button id="btnAdmin" class="btn btn-outline-primary" style="background-color: white;"
+                                onclick="switchLogin('admin')">Admin Login</button>
+                        </div>
+
+                        <form id="studentForm" onsubmit="return false">
+                            <!-- Shared Main Box (Changes between Username / Full Name / Admin ID) -->
+                            <div class="form-group" id="fullNameBox" style="display: none;">
+                                <label id="nameLabel">Full Name:</label>
+                                <input type="text" id="regname" class="form-control" placeholder="Enter Full Name">
+                            </div>
+
+                            <div class="form-group">
+                                <label id="loginUserLabel">Username:</label>
+                                <input type="text" id="uname" class="form-control" placeholder="Enter Username">
+                            </div>
+
+                            <!-- Student Extra Details (Signup only) -->
+                            <div id="signupFields" style="display: none;">
+                                <div class="form-group">
+                                    <label>Student ID:</label>
+                                    <input type="text" id="sid" class="form-control" placeholder="Enter Student ID">
+                                </div>
+                                <div class="form-group">
+                                    <label>Department:</label>
+                                    <select id="dept" class="form-control">
+                                        <option value="CS">Computer Science</option>
+                                        <option value="CSE-AI">CSE (AI & ML)</option>
+                                        <option value="CSE-DS">CSE (Data Science)</option>
+                                        <option value="CSE-CY">CSE (Cyber Security)</option>
+                                        <option value="IT">Information Tech (IT)</option>
+                                        <option value="CIVIL">Civil Engineering</option>
+                                        <option value="ECE">Electronics (ECE)</option>
+                                        <option value="MECH">Mechanical Eng</option>
+                                    </select>
+                                </div>
+                            </div>
+
+                            <div class="form-group">
+                                <label>Password:</label>
+                                <input type="password" id="upass" class="form-control" placeholder="Enter Password">
+                                <small id="passHint" class="text-muted" style="display: none;">Must be 8+ chars (1 Capital, 1 Number, 1 Special char)</small>
+                            </div>
+
+                            <div class="btn-group w-100">
+                                <button id="loginSubmitBtn" class="btn btn-primary" onclick="doFakeLogin()">Access Portal</button>
+                                <button id="signupBtn" class="btn btn-outline-dark" onclick="toggleSignup()">New Student? Sign Up</button>
+                            </div>
+                        </form>
+
+                    </div>
+                </div>
+
+            </div>
+        </div>
+    </div>
+
+    <script>
+        var currentRole = 'user'; // Current selection
+        var isSignupMode = false;
+
+        // Toggle User/Admin (Topic 15-16)
+        function switchLogin(roleType) {
+            currentRole = roleType;
+            if (roleType == 'user') {
+                $("#btnUser").removeClass("btn-outline-primary").addClass("btn-primary");
+                $("#btnAdmin").removeClass("btn-primary").addClass("btn-outline-primary").css("background-color", "white");
+                $("#loginTitle").text("Library Login System");
+                $("#loginUserLabel").text("Username:");
+                $("#uname").attr("placeholder", "Enter Username");
+                $("#signupBtn").show();
+            } else {
+                $("#btnUser").removeClass("btn-primary").addClass("btn-outline-primary").css("background-color", "white");
+                $("#btnAdmin").removeClass("btn-outline-primary").addClass("btn-primary");
+                $("#loginTitle").text("Admin Control Panel");
+                $("#loginUserLabel").text("Admin ID:");
+                $("#uname").attr("placeholder", "Enter Admin ID");
+                $("#signupBtn").hide();
+
+                if(isSignupMode) toggleSignup(); // Close signup if open
+            }
+        }
+
+        // Toggle Login/Signup
+        function toggleSignup() {
+            isSignupMode = !isSignupMode;
+            if (isSignupMode) {
+                $("#fullNameBox, #signupFields, #passHint").fadeIn();
+                $("#loginTitle").text("Create Student Account");
+                $("#loginSubmitBtn").text("Register Now").removeClass("btn-primary").addClass("btn-success");
+                $("#signupBtn").text("Back to Login");
+            } else {
+                $("#fullNameBox, #signupFields, #passHint").hide();
+                $("#loginTitle").text("Library Login System");
+                $("#loginSubmitBtn").text("Access Portal").removeClass("btn-success").addClass("btn-primary");
+                $("#signupBtn").text("New Student? Sign Up");
+            }
+        }
+
+        // Logic check for Secure Passwords
+        function isPasswordStrong(pass) {
+            const hasUpper = /[A-Z]/.test(pass);
+            const hasNum = /\d/.test(pass);
+            const hasSpec = /[@$!%*?&]/.test(pass);
+            const isLong = pass.length >= 8;
+            return hasUpper && hasNum && hasSpec && isLong;
+        }
+
+        function doFakeLogin() {
+            var inputUser = $("#uname").val(); // Username OR Admin ID
+            var inputPass = $("#upass").val();
+
+            if (inputUser == "" || inputPass == "") {
+                alert("Please fill necessary details!");
+                return;
+            }
+
+            if (isSignupMode) {
+                // REGISTRATION
+                if (!isPasswordStrong(inputPass)) {
+                    alert("Weak Password! 1 Capital, 1 Number, and 1 Special required (Min 8 characters).");
+                    return;
+                }
+
+                var studentData = {
+                    fullname: $("#regname").val(),
+                    username: inputUser,
+                    studentId: $("#sid").val(),
+                    department: $("#dept").val(),
+                    password: inputPass,
+                    role: 'user'
+                };
+
+                $.ajax({
+                    url: '/api/signup',
+                    method: 'POST',
+                    contentType: 'application/json',
+                    data: JSON.stringify(studentData),
+                    success: function(res) {
+                        alert(res.message);
+                        toggleSignup(); // Back to login
+                    }
+                });
+            } else {
+                // LOGIN
+                $.ajax({
+                    url: '/api/login',
+                    method: 'POST',
+                    contentType: 'application/json',
+                    data: JSON.stringify({ username: inputUser, password: inputPass, role: currentRole }),
+                    success: function(response) {
+                        localStorage.setItem("currentUser", response.username);
+                        localStorage.setItem("currentFullName", response.fullname);
+                        if (currentRole == 'admin' || inputUser == "admin") {
+                            window.location.href = "admin.html";
+                        } else {
+                            window.location.href = "user.html";
+                        }
+                    },
+                    error: function() {
+                        alert("Account not found. Please check details or Sign Up!");
+                    }
+                });
+            }
+        }
+    </script>
+    </script>
+</body>
+</html>
